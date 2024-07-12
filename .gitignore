@@ -1,0 +1,8 @@
+.local
+**/logs
+**/models
+**/wandb
+**/data_cache
+
+.DS_Store
+*/.DS_Store
