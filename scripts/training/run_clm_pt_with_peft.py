@@ -358,6 +358,7 @@ class MyTrainingArguments(TrainingArguments):
     lora_dropout: Optional[float] = field(default=0.1)
     lora_alpha: Optional[float] = field(default=32.0)
     use_dora: Optional[bool] = field(default=False)
+    use_rslora: Optional[bool] = field(default=False)
     modules_to_save: Optional[str] = field(default=None)
     debug_mode: Optional[bool] = field(default=False)
     peft_path: Optional[str] = field(default=None)
@@ -540,7 +541,8 @@ def main():
     ):
         lm_datasets = []
         path = Path(data_args.dataset_dir)
-        files = [file for file in path.glob("*/**/*.jsonl")]
+        files = [file for file in path.glob("*/*/*.jsonl")]
+        files.extend([file for file in path.glob("*/**/*.arrow")])
         files = [(file.name, str(file)) for file in files]
         if training_args.debug_mode is True:
             files = [files[0]]
@@ -556,8 +558,10 @@ def main():
             except Exception:
                 cache_dir = os.path.join(data_args.data_cache_dir, filename + "_text")
                 os.makedirs(cache_dir, exist_ok=True)
+                data_format = file.split(".")[-1]
+                data_format = "json" if data_format == "jsonl" else data_format
                 raw_dataset = load_dataset(
-                    "json",
+                    data_format,
                     data_files=data_file,
                     cache_dir=cache_dir,
                     keep_in_memory=False,
@@ -710,6 +714,7 @@ def main():
                 lora_alpha=lora_alpha,
                 lora_dropout=lora_dropout,
                 use_dora=training_args.use_dora,
+                use_rslora=training_args.use_rslora,
                 modules_to_save=modules_to_save,
             )
             model = get_peft_model(model, peft_config)
