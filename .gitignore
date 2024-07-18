@@ -1,4 +1,7 @@
 .local
+data
+scripts/custom_tokenizers
+
 **/logs
 **/models
 **/wandb

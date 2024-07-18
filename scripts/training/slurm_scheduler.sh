@@ -1,17 +1,17 @@
 #!/bin/bash
 #SBATCH --account=project_462000353
-#SBATCH --job-name=cpt-sv-mistral-all-base-dora
+#SBATCH --job-name=cpt-sven-extended-mistral-all-base
 #SBATCH --nodes=32
 #SBATCH --cpus-per-task=7
 #SBATCH --gpus-per-node=mi250:8
 #SBATCH --ntasks-per-node=8
 #SBATCH --mem=480G
 #SBATCH --partition=standard-g
-#SBATCH --output=logs/cpt-sv-mistral-base-dora-all_%j.out
-#SBATCH --error=logs/cpt-sv-mistral-base-dora-all_%j.err
+#SBATCH --output=logs/cpt-sven-extended-mistral-all-base_%j.out
+#SBATCH --error=logs/cpt-sven-extended-mistral-all-base_%j.err
 #SBATCH --exclusive=user
 #SBATCH --hint=nomultithread
-#SBATCH --time=1-00:00:00
+#SBATCH --time=2-00:00:00
 
 echo "START TIME: $(date)"
 sepset -eo pipefail
@@ -48,14 +48,14 @@ lora_dropout=0.05
 
 deepspeed_config_file=ds_zero2_no_offload.json
 pretrained_model=/scratch/project_462000319/aralikatte/cpt/scripts/training/models/Mistral-7B-v0.2
-tokenizer_name_or_path=${pretrained_model}
-dataset_dir=/scratch/project_462000444/europa/FINAL-DATA/sv/
+tokenizer_name_or_path=/scratch/project_462000319/aralikatte/cpt/scripts/custom_tokenizers/mistral-0.2-sv-tokenizer-hf # ${pretrained_model}
+dataset_dir=/scratch/project_462000319/aralikatte/cpt/data/sv_en # /scratch/project_462000444/europa/FINAL-DATA/sv/
 data_cache=/scratch/project_462000319/aralikatte/cpt/scripts/training/data_cache
 per_device_train_batch_size=2
 per_device_eval_batch_size=8
 gradient_accumulation_steps=2
-output_dir=models/cpt-sv-mistral-all-base-dora
-run_name=cpt-sv-mistral-all-base-dora
+output_dir=models/cpt-sven-extended-mistral-all-base
+run_name=cpt-sven-extended-mistral-all-base
 
 # program to run
 PROGRAM="run_clm_pt_with_peft.py \
@@ -102,7 +102,8 @@ PROGRAM="run_clm_pt_with_peft.py \
     --report_to wandb \
     --run_name ${run_name} \
     --dataloader_num_workers 0 \
-    --use_dora \
+    --use_dora=False \
+    --use_rslora=False \
     --bf16
     "
     # --overwrite_output_dir \
