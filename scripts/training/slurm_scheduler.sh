@@ -1,17 +1,17 @@
 #!/bin/bash
 #SBATCH --account=project_462000353
-#SBATCH --job-name=cpt-sven-extended-mistral-all-base
+#SBATCH --job-name=cpt-sv-llama31-base
 #SBATCH --nodes=32
 #SBATCH --cpus-per-task=7
 #SBATCH --gpus-per-node=mi250:8
 #SBATCH --ntasks-per-node=8
 #SBATCH --mem=480G
 #SBATCH --partition=standard-g
-#SBATCH --output=logs/cpt-sven-extended-mistral-all-base_%j.out
-#SBATCH --error=logs/cpt-sven-extended-mistral-all-base_%j.err
+#SBATCH --output=logs/cpt-sv-llama31-base_%j.out
+#SBATCH --error=logs/cpt-sv-llama31-base_%j.err
 #SBATCH --exclusive=user
 #SBATCH --hint=nomultithread
-#SBATCH --time=2-00:00:00
+#SBATCH --time=1-00:00:00
 
 echo "START TIME: $(date)"
 sepset -eo pipefail
@@ -29,10 +29,11 @@ module load LUMI/23.09
 module load PyTorch/2.2.2-rocm-5.6.1-python-3.10-vllm-0.4.0.post1-singularity-20240404
 export CC=gcc-10
 export CXX=g++-10
-export PYTHONUSERBASE=/scratch/project_462000319/aralikatte/cpt/.local
-export PATH=/scratch/project_462000319/aralikatte/cpt/.local/bin:$PATH
+export PYTHONUSERBASE=/scratch/project_462000353/aralikatte/cpt/.local
+export PATH=/scratch/project_462000353/aralikatte/cpt/.local/bin:$PATH
 
 # training hparams
+max_steps=20000 # 25000
 lr=5e-5
 optim="adamw_torch"
 beta1=0.9
@@ -47,15 +48,21 @@ modules_to_save="embed_tokens,lm_head"
 lora_dropout=0.05
 
 deepspeed_config_file=ds_zero2_no_offload.json
-pretrained_model=/scratch/project_462000319/aralikatte/cpt/scripts/training/models/Mistral-7B-v0.2
-tokenizer_name_or_path=/scratch/project_462000319/aralikatte/cpt/scripts/custom_tokenizers/mistral-0.2-sv-tokenizer-hf # ${pretrained_model}
-dataset_dir=/scratch/project_462000319/aralikatte/cpt/data/sv_en # /scratch/project_462000444/europa/FINAL-DATA/sv/
-data_cache=/scratch/project_462000319/aralikatte/cpt/scripts/training/data_cache
+pretrained_model=meta-llama/Meta-Llama-3.1-8B # /scratch/project_462000353/aralikatte/cpt/scripts/training/models/Mistral-7B-v0.2
+tokenizer_name_or_path=${pretrained_model} # /scratch/project_462000353/aralikatte/cpt/scripts/custom_tokenizers/mistral-0.2-sv-tokenizer-hf
+
+file_list=("/scratch/project_462000353/aralikatte/data/smollm-corpus/fineweb-edu-dedup/[0-40].parquet" # 50
+"/scratch/project_462000444/europa/FINAL-DATA/sv/culturax/sv_part_000[0-1][0-9].jsonl"
+# "/scratch/project_462000444/europa/FINAL-DATA/sv/hplt/sv-part-[0-9].jsonl"
+"/scratch/project_462000444/europa/FINAL-DATA/sv/wikipedia/*.jsonl"
+"/scratch/project_462000444/europa/FINAL-DATA/sv/europarl/*.jsonl")
+
+data_cache=/scratch/project_462000353/aralikatte/cpt/scripts/training/vanilla_llama31_data_cache # /scratch/project_462000353/aralikatte/cpt/scripts/training/data_cache_extended
 per_device_train_batch_size=2
 per_device_eval_batch_size=8
 gradient_accumulation_steps=2
-output_dir=models/cpt-sven-extended-mistral-all-base
-run_name=cpt-sven-extended-mistral-all-base
+output_dir=models/cpt-sv-llama31-base
+run_name=cpt-sv-llama31-base
 
 # program to run
 PROGRAM="run_clm_pt_with_peft.py \
@@ -65,7 +72,7 @@ PROGRAM="run_clm_pt_with_peft.py \
     --optim ${optim} \
     --adam_beta1 ${beta1} \
     --adam_beta2 ${beta2} \
-    --dataset_dir ${dataset_dir} \
+    --file_list ${file_list[@]} \
     --data_cache_dir ${data_cache} \
     --validation_split_percentage 0.001 \
     --per_device_train_batch_size ${per_device_train_batch_size} \
@@ -74,7 +81,7 @@ PROGRAM="run_clm_pt_with_peft.py \
     --max_eval_samples 10000 \
     --low_cpu_mem_usage \
     --seed $RANDOM \
-    --num_train_epochs 1 \
+    --max_steps ${max_steps} \
     --lr_scheduler_type cosine \
     --learning_rate ${lr} \
     --warmup_ratio 0.05 \
@@ -104,10 +111,11 @@ PROGRAM="run_clm_pt_with_peft.py \
     --dataloader_num_workers 0 \
     --use_dora=False \
     --use_rslora=False \
+    --use_flash_attention_2 \
     --bf16
     "
+    # --num_train_epochs 1 \
     # --overwrite_output_dir \
-    # --use_flash_attention_2 \
 
 GPUS_PER_NODE=8
 export MASTER_ADDR=$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n 1)
@@ -119,7 +127,7 @@ echo "MASTER_ADDR: $MASTER_ADDR"
 echo "MASTER_PORT: $MASTER_PORT"
 echo "WORLD_SIZE: $WORLD_SIZE"
 
-SING_BIND="/scratch/project_462000319,/scratch/project_462000444"
+SING_BIND="/scratch/project_462000353,/scratch/project_462000444"
 
 srun \
     --label \

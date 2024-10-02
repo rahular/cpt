@@ -266,6 +266,8 @@ class ModelArguments:
                 "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
             )
 
+def list_field(default=None, metadata=None):
+    return field(default_factory=lambda: default or [], metadata=metadata)
 
 @dataclass
 class DataTrainingArguments:
@@ -276,6 +278,10 @@ class DataTrainingArguments:
     dataset_dir: Optional[str] = field(
         default=None,
         metadata={"help": "The name of the dataset to use (via the datasets library)."},
+    )
+    file_list: Optional[List[str]] = list_field(
+        default=None,
+        metadata={"help": "The list of data files or patterns to process", "nargs": "+"},
     )
     dataset_config_name: Optional[str] = field(
         default=None,
@@ -535,19 +541,33 @@ def main():
         }
         result["labels"] = result["input_ids"].copy()
         return result
+    
+    def get_files(data_args):
+        if data_args.dataset_dir and data_args.file_list:
+            raise ValueError("Only one of dataset_dir or file_list should be provided")
+        if data_args.dataset_dir:
+            path = Path(data_args.dataset_dir)
+            files = list(path.glob("*/*.jsonl")) + list(path.glob("*/*.arrow")) + list(path.glob("*/*.parquet"))
+            return [(file.name, str(file)) for file in files]
+        elif data_args.file_list:
+            expanded_files = []
+            for pattern in data_args.file_list:
+                expanded_files.extend(glob.glob(pattern))
+            return [(Path(file).name, file) for file in expanded_files]
+        else:
+            raise ValueError("No dataset_dir or file_list provided")
 
     with training_args.main_process_first(
         desc="dataset map tokenization and grouping", local=False
     ):
         lm_datasets = []
-        path = Path(data_args.dataset_dir)
-        files = [file for file in path.glob("*/*/*.jsonl")]
-        files.extend([file for file in path.glob("*/**/*.arrow")])
-        files = [(file.name, str(file)) for file in files]
+        files = get_files(data_args)
         if training_args.debug_mode is True:
             files = [files[0]]
         for idx, (file, data_file) in enumerate(files):
-            filename = "".join(file.split(".")[:-1])
+            data_format = data_file.split(".")[-1]
+            data_format = "json" if data_format == "jsonl" else data_format
+            filename = "_".join(file.split("/"))
             cache_path = os.path.join(data_args.data_cache_dir, filename)
             os.makedirs(cache_path, exist_ok=True)
             try:
@@ -558,8 +578,6 @@ def main():
             except Exception:
                 cache_dir = os.path.join(data_args.data_cache_dir, filename + "_text")
                 os.makedirs(cache_dir, exist_ok=True)
-                data_format = file.split(".")[-1]
-                data_format = "json" if data_format == "jsonl" else data_format
                 raw_dataset = load_dataset(
                     data_format,
                     data_files=data_file,

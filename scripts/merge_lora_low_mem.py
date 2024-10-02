@@ -2,9 +2,9 @@
 Usage: 
 python merge_lora_low_mem.py \
     --base_model mistralai/Mistral-7B-Instruct-v0.2 \
-    --lora_model /scratch/project_462000319/aralikatte/cpt/scripts/training/models/cpt-sv-mistral-all/checkpoint-15500 \
+    --lora_model /scratch/project_462000319/aralikatte/cpt/scripts/training/models/cpt-sven-mistral-all-base-5k \
     --output_type huggingface \
-    --output_dir /scratch/project_462000319/aralikatte/cpt/scripts/training/models/cpt-sv-mistral-all/checkpoint-15500-merged
+    --output_dir /scratch/project_462000319/aralikatte/cpt/scripts/training/models/cpt-sven-mistral-all-base-5k/merged
 """
 
 import argparse
