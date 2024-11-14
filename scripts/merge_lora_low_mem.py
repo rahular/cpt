@@ -1,10 +1,10 @@
 """
 Usage: 
 python merge_lora_low_mem.py \
-    --base_model mistralai/Mistral-7B-Instruct-v0.2 \
-    --lora_model /scratch/project_462000319/aralikatte/cpt/scripts/training/models/cpt-sven-mistral-all-base-5k \
+    --base_model meta-llama/Meta-Llama-3.1-8B \
+    --lora_model /scratch/project_462000353/aralikatte/cpt/scripts/training/models/cpt-sv-llama31-base \
     --output_type huggingface \
-    --output_dir /scratch/project_462000319/aralikatte/cpt/scripts/training/models/cpt-sven-mistral-all-base-5k/merged
+    --output_dir /scratch/project_462000353/aralikatte/cpt/scripts/training/models/cpt-sv-llama31-base/merged
 """
 
 import argparse
