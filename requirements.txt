@@ -2,3 +2,5 @@ peft==0.7.1
 transformers>=4.40.0
 datasets
 safetensors
+protobuf
+sentencepiece
