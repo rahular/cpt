@@ -11,7 +11,7 @@ IGNORE_INDEX = -100
 
 logger = logging.getLogger('__name__')
 
-DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant. 你是一个乐于助人的助手。"""
+DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 system_format='<|start_header_id|>system<|end_header_id|>\n\n{content}<|eot_id|>'
 user_format='<|start_header_id|>user<|end_header_id|>\n\n{content}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n'
 assistant_format='{content}<|eot_id|>'
